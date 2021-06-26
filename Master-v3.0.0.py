@@ -173,12 +173,15 @@ class RenderEngine:
         self.load_components()
 
     def select_capture(self, event=None):
+        if hasattr(self, 'capture_engine') == False:
+            self.sb_text.config(text='LOAD::FAIL::CAPTURE_DEVICE')
+            return False
+
         self.if_photo.image = self.if_capture.image
         self.dvms_engine.set_source(self.capture_engine.last_frame)
 
         self.if_photo.config(image=self.if_photo.image)
         self.sb_text.config(text='LOAD::SUCCESS::CAPTURE_DEVICE')
-        pass
 
     def select_source(self, event=None):
         filepath = filedialog.askopenfilename(
