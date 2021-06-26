@@ -188,16 +188,17 @@ class RenderEngine:
             initialdir=self.local_path, title="Select An Image",
             filetypes=(("JPEG", "*.jpg"), ("GIF", "*.gif*"), ("PNG", "*.png")))
 
+        if hasattr(self, 'dvms_engine') == False:
+            return self.sb_text.config(text='LOAD::FAIL {}'.format('dvms_engine is loading'))
         if len(filepath):
-            self.sb_text.config(text='LOAD::{}'.format(filepath))
             image = cv2.imread(filepath)
-            if image is None: self.sb_text.config(text='LOAD::FAIL::{}'.format(filepath))
+            if image is None: self.sb_text.config(text='LOAD::FAIL {}'.format('Can not load file ' + filepath))
             else:
                 self.source_image = image
                 self.dvms_engine.set_source(image)
                 self.if_photo.image = Helper.get_fix(self.source_image, self.if_photo)
                 self.if_photo.config(image=self.if_photo.image)
-                self.sb_text.config(text='LOAD::SUCCESS::{}'.format(filepath))
+                self.sb_text.config(text='LOAD::SUCCESS {}'.format(filepath))
 
     def load_components(self) -> None:
         im_noimage = cv2.imread('Photos/NO_IMAGE.PNG')
