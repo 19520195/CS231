@@ -82,7 +82,6 @@ class dVMSEngine:
                 subdiv.insert(self.source_landmarks[lanmark_index])
             self.indexes_triangles_convexhull = extract_index_subdiv(subdiv, points)
 
-
     def swapping(self, target_image):
         grayscale = cv2.cvtColor(target_image, cv2.COLOR_BGR2GRAY)
 
@@ -175,7 +174,7 @@ class RenderEngine:
 
     def select_capture(self, event=None):
         self.if_photo.image = self.if_capture.image
-        self.secret.set_source(self.capture_engine.last_frame)
+        self.dvms_engine.set_source(self.capture_engine.last_frame)
 
         self.if_photo.config(image=self.if_photo.image)
         self.sb_text.config(text='LOAD::SUCCESS::CAPTURE_DEVICE')
@@ -192,7 +191,7 @@ class RenderEngine:
             if image is None: self.sb_text.config(text='LOAD::FAIL::{}'.format(filepath))
             else:
                 self.source_image = image
-                self.secret.set_source(image)
+                self.dvms_engine.set_source(image)
                 self.if_photo.image = Helper.get_fix(self.source_image, self.if_photo)
                 self.if_photo.config(image=self.if_photo.image)
                 self.sb_text.config(text='LOAD::SUCCESS::{}'.format(filepath))
@@ -232,32 +231,34 @@ class RenderEngine:
         self.of_feature0.grid(row=1, column=0, padx=5, pady=5)
         self.of_feature1.grid(row=1, column=1, padx=5, pady=5)
 
-
     def load_engine(self) -> None:
+        self.sb_text.config(text='LOAD::dVMS_ENGINE')
+        self.dvms_engine = dVMSEngine()
+
         self.sb_text.config(text='LOAD::CAPTURE_ENGINE')
         self.capture_engine = CaptureEngine()
 
-        self.sb_text.config(text='LOAD')
-        def _local():
-            capture_frame = self.capture_engine.read()
-            self.if_capture.image = Helper.get_fix(capture_frame, self.if_capture)
-            self.if_capture.config(image=self.if_capture.image)
+        self.sb_text.config(text='LOAD::SUCCESS')
+        self.capture_handle()
 
-            try:
-                a, b = self.secret.swapping(capture_frame)
-                self.of_feature0.image = Helper.get_fix(a, self.of_feature0)
-                self.of_feature1.image = Helper.get_fix(b, self.of_feature1)
-            except:
-                self.of_feature0.image = Helper.get_fix(capture_frame, self.if_capture)
-                self.of_feature1.image = Helper.get_fix(capture_frame, self.if_capture)
+    def capture_handle(self):
+        capture_frame = self.capture_engine.read()
+        self.if_capture.image = Helper.get_fix(capture_frame, self.if_capture)
+        self.if_capture.config(image=self.if_capture.image)
 
-            self.of_feature0.config(image=self.of_feature0.image)
-            self.of_feature1.config(image=self.of_feature1.image)
-            self.app.after(10, _local)
-        _local()
+        try:
+            a, b = self.dvms_engine.swapping(capture_frame)
+            self.of_feature0.image = Helper.get_fix(a, self.of_feature0)
+            self.of_feature1.image = Helper.get_fix(b, self.of_feature1)
+        except:
+            self.of_feature0.image = Helper.get_fix(capture_frame, self.if_capture)
+            self.of_feature1.image = Helper.get_fix(capture_frame, self.if_capture)
+
+        self.of_feature0.config(image=self.of_feature0.image)
+        self.of_feature1.config(image=self.of_feature1.image)
+        self.app.after(10, self.capture_handle)
 
     def start(self) -> None:
-        self.secret = dVMSEngine()
         threading.Thread(target=self.load_engine).start()
         self.app.mainloop()
 
