@@ -50,7 +50,6 @@ class dVMSEngine:
     def __init__ (self):
         self.source_image                 = None
         self.source_landmarks             = None
-        self.img_gray                     = None
         self.face_image_1                 = None
         self.indexes_triangles            = None
         self.indexes_triangles_convexhull = None
@@ -185,7 +184,7 @@ class RenderEngine:
 
     def select_source(self, event=None):
         filepath = filedialog.askopenfilename(
-            initialdir=self.local_path, title="Select An Image",
+            initialdir=self.local_path, title="Select an image",
             filetypes=(("JPEG", "*.jpg"), ("GIF", "*.gif*"), ("PNG", "*.png")))
 
         if hasattr(self, 'dvms_engine') == False:
@@ -200,40 +199,73 @@ class RenderEngine:
                 self.if_photo.config(image=self.if_photo.image)
                 self.sb_text.config(text='LOAD::SUCCESS {}'.format(filepath))
 
+    def save_feature0(self, event=None):
+        filepath =filedialog.asksaveasfilename(
+            initialdir=self.local_path, title="Save as",
+            filetypes=(("JPEG", "*.jpg"), ("GIF", "*.gif*"), ("PNG", "*.png")))
+        cv2.imwrite(filepath, self.image_feature0)
+
+    def save_feature1(self, event=None):
+        filepath =filedialog.asksaveasfilename(
+            initialdir=self.local_path, title="Save as",
+            filetypes=(("JPEG", "*.jpg"), ("GIF", "*.gif*"), ("PNG", "*.png")))
+        cv2.imwrite(filepath, self.image_feature1)
+
+
     def load_components(self) -> None:
         im_noimage = cv2.imread('Photos/NO_IMAGE.PNG')
 
+        source_frame = Frame(self.app)
+        source_frame.pack(side=LEFT)
+        for i in range(4): source_frame.grid_rowconfigure(i, weight=1)
+        for i in range(2): source_frame.grid_columnconfigure(i, weight=1)
+
         # INPUT_FRAME
-        _if = Frame(self.app, bg='#fff')
-        _if.pack(side=TOP)
-        self.if_capture = Label(_if, width=self.SQR_WIDTH, height=self.SQR_HEIGHT)
+        self.if_capture = Label(source_frame, width=self.SQR_WIDTH, height=self.SQR_HEIGHT)
         self.if_capture.image = Helper.get_fix(im_noimage, self.if_capture)
         self.if_capture.config(image=self.if_capture.image)
         self.if_capture.bind('<Button-1>', self.select_capture)
-        self.if_photo = Label(_if, width=self.SQR_WIDTH, height=self.SQR_HEIGHT)
+        self.if_photo = Label(source_frame, width=self.SQR_WIDTH, height=self.SQR_HEIGHT)
         self.if_photo.image = Helper.get_fix(im_noimage, self.if_photo)
         self.if_photo.config(image=self.if_photo.image)
         self.if_photo.bind('<Button-1>', self.select_source)
 
-        Label(_if,  text=' +/device0 ').grid(row=0, column=0)
-        Label(_if,  text=' +/input0 ').grid(row=0, column=1)
+        Label(source_frame, text=' +/device0 ', height=2).grid(row=0, column=0)
+        Label(source_frame, text=' +/input0 ', height=2).grid(row=0, column=1)
         self.if_capture.grid(row=1, column=0, padx=5, pady=5)
         self.if_photo.grid(row=1, column=1, padx=5, pady=5)
 
         # OUTPUT_FRAME
-        _of = Frame(self.app, bg='#fff')
-        _of.pack(side=TOP)
-        self.of_feature0 = Label(_of, width=self.SQR_WIDTH, height=self.SQR_HEIGHT)
+        self.of_feature0 = Label(source_frame, width=self.SQR_WIDTH, height=self.SQR_HEIGHT)
         self.of_feature0.image = Helper.get_fix(im_noimage, self.of_feature0)
         self.of_feature0.config(image=self.of_feature0.image)
-        self.of_feature1 = Label(_of, width=self.SQR_WIDTH, height=self.SQR_HEIGHT)
+
+        self.of_feature1 = Label(source_frame, width=self.SQR_WIDTH, height=self.SQR_HEIGHT)
         self.of_feature1.image = Helper.get_fix(im_noimage, self.of_feature1)
         self.of_feature1.config(image=self.of_feature1.image)
 
-        Label(_of,  text=' -/dev/feature0 ').grid(row=0, column=0)
-        Label(_of,  text=' -/dev/feature1 ').grid(row=0, column=1)
-        self.of_feature0.grid(row=1, column=0, padx=5, pady=5)
-        self.of_feature1.grid(row=1, column=1, padx=5, pady=5)
+        Label(source_frame, text=' -/dev/feature0 ', height=2).grid(row=2, column=0)
+        Label(source_frame, text=' -/dev/feature1 ', height=2).grid(row=2, column=1)
+        self.of_feature0.grid(row=3, column=0, padx=5, pady=5)
+        self.of_feature1.grid(row=3, column=1, padx=5, pady=5)
+
+        # Control frame
+        self.app.config(bg='white')
+        control_frame = Frame(self.app, bg='white')
+        control_frame.pack(side=LEFT, padx=16, pady=16)
+
+        _load = LabelFrame(control_frame, text='Load', bg='white')
+        _load.pack(side=LEFT, padx=16, pady=16)
+        Button(_load, text='Capture Device',  relief=GROOVE, bg='white', command=self.select_capture).pack(side=TOP, padx=16, pady=(16, 8))
+        Button(_load, text='Computer Source', relief=GROOVE, bg='white', command=self.select_source ).pack(side=TOP, padx=16, pady=(8, 16))
+
+        _save = LabelFrame(control_frame, text='Save', bg='white')
+        _save.pack(side=LEFT, padx=16, pady=16)
+        Button(_save, text='Feature0', relief=GROOVE, bg='white', command=self.save_feature0).pack(side=TOP, padx=16, pady=(16, 8))
+        Button(_save, text='Feature1', relief=GROOVE, bg='white', command=self.save_feature1).pack(side=TOP, padx=16, pady=(8, 16))
+
+        # Button(self.app, text='SAVE FEATURE', relief=GROOVE, bg='#ffffff').pack(side=LEFT)
+        # Button(_of, text='SAVE FEATURE', relief=GROOVE ).grid(row=2, column=1)
 
     def load_engine(self) -> None:
         self.sb_text.config(text='LOAD::dVMS_ENGINE')
@@ -250,10 +282,11 @@ class RenderEngine:
         self.if_capture.image = Helper.get_fix(capture_frame, self.if_capture)
         self.if_capture.config(image=self.if_capture.image)
 
+        self.image_feature0, self.image_feature1 = capture_frame, capture_frame
         try:
-            a, b = self.dvms_engine.swapping(capture_frame)
-            self.of_feature0.image = Helper.get_fix(a, self.of_feature0)
-            self.of_feature1.image = Helper.get_fix(b, self.of_feature1)
+            self.image_feature0, self.image_feature1 = self.dvms_engine.swapping(capture_frame)
+            self.of_feature0.image = Helper.get_fix(self.image_feature0, self.of_feature0)
+            self.of_feature1.image = Helper.get_fix(self.image_feature1, self.of_feature1)
         except:
             self.of_feature0.image = Helper.get_fix(capture_frame, self.if_capture)
             self.of_feature1.image = Helper.get_fix(capture_frame, self.if_capture)
