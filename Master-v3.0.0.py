@@ -287,13 +287,11 @@ class RenderEngine:
         self.if_capture.config(image=self.if_capture.image)
 
         self.image_feature = (capture_frame, capture_frame)
-        try:
-            self.image_feature = self.dvms_engine.swapping(capture_frame)
-            self.of_feature0.image = Helper.get_fix(self.image_feature[0], self.of_feature0)
-            self.of_feature1.image = Helper.get_fix(self.image_feature[1], self.of_feature1)
-        except:
-            self.of_feature0.image = Helper.get_fix(capture_frame, self.if_capture)
-            self.of_feature1.image = Helper.get_fix(capture_frame, self.if_capture)
+        try: self.image_feature = self.dvms_engine.swapping(capture_frame)
+        except: pass
+
+        self.of_feature0.image = Helper.get_fix(self.image_feature[0], self.of_feature0)
+        self.of_feature1.image = Helper.get_fix(self.image_feature[1], self.of_feature1)
 
         self.of_feature0.config(image=self.of_feature0.image)
         self.of_feature1.config(image=self.of_feature1.image)
