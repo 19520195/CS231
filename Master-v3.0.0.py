@@ -53,6 +53,7 @@ class dVMSEngine:
         self.indexes_triangles            = None
         self.indexes_triangles_convexhull = None
 
+        self.debug_point = True
         self.detector  = dlib.get_frontal_face_detector()
         self.predictor = dlib.shape_predictor("68_landmarks.model")
 
@@ -87,9 +88,9 @@ class dVMSEngine:
 
             for face in self.detector(grayscale):
                 landmarks = self.predictor(grayscale, face)
-                landmarks_points2 = [(landmarks.part(i).x, landmarks.part(i).y) for i in range(68)]
+                self.target_landmarks = [(landmarks.part(i).x, landmarks.part(i).y) for i in range(68)]
 
-                points2 = np.array(landmarks_points2, np.int32)
+                points2 = np.array(self.target_landmarks, np.int32)
                 convexhull2 = cv2.convexHull(points2)
 
                 for triangle_index in indexes_triangles:
@@ -104,10 +105,9 @@ class dVMSEngine:
                                        [tr1_pt2[0] - x, tr1_pt2[1] - y],
                                        [tr1_pt3[0] - x, tr1_pt3[1] - y]], np.int32)
 
-
-                    tr2_pt1 = landmarks_points2[triangle_index[0]]
-                    tr2_pt2 = landmarks_points2[triangle_index[1]]
-                    tr2_pt3 = landmarks_points2[triangle_index[2]]
+                    tr2_pt1 = self.target_landmarks[triangle_index[0]]
+                    tr2_pt2 = self.target_landmarks[triangle_index[1]]
+                    tr2_pt3 = self.target_landmarks[triangle_index[2]]
 
                     triangle2 = np.array([tr2_pt1, tr2_pt2, tr2_pt3], np.int32)
                     (x, y, w, h) =  cv2.boundingRect(triangle2)
@@ -253,10 +253,22 @@ class RenderEngine:
         self.fps_slide.set(25)
         self.fps_slide.pack(anchor=CENTER, padx=16, pady=16)
 
+        # Debug
+        debug_control = LabelFrame(control_frame, text='Debug Control', bg='white')
+        debug_control.pack(side=TOP, padx=16, pady=16)
+
+        self.debug_line = IntVar()
+        self.debug_point = IntVar()
+        # self.debug_result = IntVar()
+
+        Checkbutton(debug_control, text='Line', bg='white', variable=self.debug_line).pack(side=LEFT, padx=8, pady=8)
+        Checkbutton(debug_control, text='Point', bg='white', variable=self.debug_point).pack(side=LEFT, padx=8, pady=8)
+        # Checkbutton(debug_control, text='Result', bg='white', variable=self.debug_result).pack(side=LEFT, padx=8, pady=8)
+
+        # Load and save
         load_and_save = Frame(control_frame, bg='white')
         load_and_save.pack(side=TOP, padx=16)
 
-        # Load and save
         _load = LabelFrame(load_and_save, text='Load', bg='white')
         _load.pack(side=LEFT, padx=16, pady=16)
         Button(_load, text='Capture Device',  relief=GROOVE, bg='white', command=self.select_capture).pack(side=TOP, padx=16, pady=(16, 8))
@@ -280,18 +292,33 @@ class RenderEngine:
 
     def capture_handle(self):
         capture_frame = self.capture_engine.read()
-        self.if_capture.image = convert_imagetk_with_resize(capture_frame, self.if_capture)
-        self.if_capture.config(image=self.if_capture.image)
-
         self.image_feature = (capture_frame, capture_frame)
-        try: self.image_feature = self.dvms_engine.swapping(capture_frame)
+        try:
+            self.image_feature = self.dvms_engine.swapping(capture_frame)
+
+            if self.debug_line.get():
+                for (a, b, c) in self.dvms_engine.indexes_triangles:
+                    cv2.line(capture_frame, self.dvms_engine.target_landmarks[a], self.dvms_engine.target_landmarks[b], (3, 246, 247), 1, cv2.LINE_AA)
+                    cv2.line(capture_frame, self.dvms_engine.target_landmarks[b], self.dvms_engine.target_landmarks[c], (3, 246, 247), 1, cv2.LINE_AA)
+                    cv2.line(capture_frame, self.dvms_engine.target_landmarks[c], self.dvms_engine.target_landmarks[a], (3, 246, 247), 1, cv2.LINE_AA)
+
+            if self.debug_point.get():
+                for point in self.dvms_engine.target_landmarks:
+                    cv2.circle(capture_frame, point, 1, (222, 205, 184), 4, cv2.LINE_AA)
+
+            # if self.debug_result.get():
+            #     if self.debug_line.get():
+            #     if self.debug_point.get():
         except: pass
 
+        self.if_capture.image = convert_imagetk_with_resize(capture_frame, self.if_capture)
         self.of_feature0.image = convert_imagetk_with_resize(self.image_feature[0], self.of_feature0)
         self.of_feature1.image = convert_imagetk_with_resize(self.image_feature[1], self.of_feature1)
 
+        self.if_capture.config(image=self.if_capture.image)
         self.of_feature0.config(image=self.of_feature0.image)
         self.of_feature1.config(image=self.of_feature1.image)
+
         self.app.after(1000 // self.fps_slide.get(), self.capture_handle)
 
     def start(self) -> None:
