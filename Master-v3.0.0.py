@@ -1,4 +1,5 @@
 import os
+from sys import argv
 import threading
 
 import cv2
@@ -153,7 +154,7 @@ class dVMSEngine:
 
 
 class RenderEngine:
-    WND_WIDTH, WND_HEIGHT = (1200, 800)
+    WND_WIDTH, WND_HEIGHT = (1280, 720)
     SQR_WIDTH, SQR_HEIGHT = (384 , 384)
 
     def __init__(self) -> None:
@@ -169,7 +170,6 @@ class RenderEngine:
         _sb_label.pack(side=LEFT)
         self.sb_text = Label(_sb, text='...', bd=0, bg='#007acc', fg='white')
         self.sb_text.pack(side=LEFT, fill=X, expand=TRUE)
-        self.load_components()
 
     def select_capture(self, event=None):
         if hasattr(self, 'capture_engine') == False:
@@ -199,18 +199,11 @@ class RenderEngine:
                 self.if_photo.config(image=self.if_photo.image)
                 self.sb_text.config(text='LOAD::SUCCESS {}'.format(filepath))
 
-    def save_feature0(self, event=None):
+    def save_feature(self, feature_index, event=None):
         filepath =filedialog.asksaveasfilename(
             initialdir=self.local_path, title="Save as",
-            filetypes=(("JPEG", "*.jpg"), ("GIF", "*.gif*"), ("PNG", "*.png")))
-        cv2.imwrite(filepath, self.image_feature0)
-
-    def save_feature1(self, event=None):
-        filepath =filedialog.asksaveasfilename(
-            initialdir=self.local_path, title="Save as",
-            filetypes=(("JPEG", "*.jpg"), ("GIF", "*.gif*"), ("PNG", "*.png")))
-        cv2.imwrite(filepath, self.image_feature1)
-
+            filetypes=(("JPEG", "*.jpg"), ("GIF", "*.gif"), ("PNG", "*.png")))
+        if len(filepath): return cv2.imwrite(filepath, self.image_feature[feature_index])
 
     def load_components(self) -> None:
         im_noimage = cv2.imread('Photos/NO_IMAGE.PNG')
@@ -254,18 +247,29 @@ class RenderEngine:
         control_frame = Frame(self.app, bg='white')
         control_frame.pack(side=LEFT, padx=16, pady=16)
 
-        _load = LabelFrame(control_frame, text='Load', bg='white')
+        # FPS
+        fps_control = LabelFrame(control_frame, text='FPS Control', bg='white')
+        fps_control.pack(side=TOP, padx=16, pady=16)
+
+        self.fps_slide = Scale(fps_control, from_=1, to=120,
+            relief=FLAT, sliderrelief=FLAT, bg='white', orient=HORIZONTAL)
+        self.fps_slide.set(25)
+        self.fps_slide.pack(anchor=CENTER, padx=16, pady=16)
+
+        load_and_save = Frame(control_frame, bg='white')
+        load_and_save.pack(side=TOP, padx=16)
+
+        # Load and save
+        _load = LabelFrame(load_and_save, text='Load', bg='white')
         _load.pack(side=LEFT, padx=16, pady=16)
         Button(_load, text='Capture Device',  relief=GROOVE, bg='white', command=self.select_capture).pack(side=TOP, padx=16, pady=(16, 8))
         Button(_load, text='Computer Source', relief=GROOVE, bg='white', command=self.select_source ).pack(side=TOP, padx=16, pady=(8, 16))
 
-        _save = LabelFrame(control_frame, text='Save', bg='white')
+        _save = LabelFrame(load_and_save, text='Save', bg='white')
         _save.pack(side=LEFT, padx=16, pady=16)
-        Button(_save, text='Feature0', relief=GROOVE, bg='white', command=self.save_feature0).pack(side=TOP, padx=16, pady=(16, 8))
-        Button(_save, text='Feature1', relief=GROOVE, bg='white', command=self.save_feature1).pack(side=TOP, padx=16, pady=(8, 16))
+        Button(_save, text='Feature0', relief=GROOVE, bg='white', command=lambda: self.save_feature(0)).pack(side=TOP, padx=16, pady=(16, 8))
+        Button(_save, text='Feature1', relief=GROOVE, bg='white', command=lambda: self.save_feature(1)).pack(side=TOP, padx=16, pady=(8, 16))
 
-        # Button(self.app, text='SAVE FEATURE', relief=GROOVE, bg='#ffffff').pack(side=LEFT)
-        # Button(_of, text='SAVE FEATURE', relief=GROOVE ).grid(row=2, column=1)
 
     def load_engine(self) -> None:
         self.sb_text.config(text='LOAD::dVMS_ENGINE')
@@ -282,20 +286,21 @@ class RenderEngine:
         self.if_capture.image = Helper.get_fix(capture_frame, self.if_capture)
         self.if_capture.config(image=self.if_capture.image)
 
-        self.image_feature0, self.image_feature1 = capture_frame, capture_frame
+        self.image_feature = (capture_frame, capture_frame)
         try:
-            self.image_feature0, self.image_feature1 = self.dvms_engine.swapping(capture_frame)
-            self.of_feature0.image = Helper.get_fix(self.image_feature0, self.of_feature0)
-            self.of_feature1.image = Helper.get_fix(self.image_feature1, self.of_feature1)
+            self.image_feature = self.dvms_engine.swapping(capture_frame)
+            self.of_feature0.image = Helper.get_fix(self.image_feature[0], self.of_feature0)
+            self.of_feature1.image = Helper.get_fix(self.image_feature[1], self.of_feature1)
         except:
             self.of_feature0.image = Helper.get_fix(capture_frame, self.if_capture)
             self.of_feature1.image = Helper.get_fix(capture_frame, self.if_capture)
 
         self.of_feature0.config(image=self.of_feature0.image)
         self.of_feature1.config(image=self.of_feature1.image)
-        self.app.after(10, self.capture_handle)
+        self.app.after(1000 // self.fps_slide.get(), self.capture_handle)
 
     def start(self) -> None:
+        self.load_components()
         threading.Thread(target=self.load_engine).start()
         self.app.mainloop()
 
