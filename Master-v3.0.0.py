@@ -168,16 +168,35 @@ class RenderEngine:
         self.sb_text = Label(_sb, text='...', bd=0, bg='#007acc', fg='white')
         self.sb_text.pack(side=LEFT, fill=X, expand=TRUE)
 
+    def load_debug_info(self, event=None):
+        if hasattr(self, 'source_image') == False: return None
+        source_debug = self.source_image.copy()
+
+        if self.debug_line.get():
+            for (a, b, c) in self.dvms_engine.indexes_triangles:
+                cv2.line(source_debug, self.dvms_engine.source_landmarks[a], self.dvms_engine.source_landmarks[b], (3, 246, 247), 1, cv2.LINE_AA)
+                cv2.line(source_debug, self.dvms_engine.source_landmarks[b], self.dvms_engine.source_landmarks[c], (3, 246, 247), 1, cv2.LINE_AA)
+                cv2.line(source_debug, self.dvms_engine.source_landmarks[c], self.dvms_engine.source_landmarks[a], (3, 246, 247), 1, cv2.LINE_AA)
+
+        if self.debug_point.get():
+            for point in self.dvms_engine.source_landmarks:
+                cv2.circle(source_debug, point, 1, (222, 205, 184), 4, cv2.LINE_AA)
+
+        self.if_photo.image = convert_imagetk_with_resize(source_debug, self.if_photo)
+        self.if_photo.config(image=self.if_photo.image)
+
     def select_capture(self, event=None):
         if hasattr(self, 'capture_engine') == False:
             self.sb_text.config(text='LOAD::FAIL::CAPTURE_DEVICE')
             return False
 
+        self.source_image = self.capture_engine.last_frame
         self.if_photo.image = self.if_capture.image
         self.dvms_engine.set_source(self.capture_engine.last_frame)
 
         self.if_photo.config(image=self.if_photo.image)
         self.sb_text.config(text='LOAD::SUCCESS::CAPTURE_DEVICE')
+        self.load_debug_info()
 
     def select_source(self, event=None):
         filepath = filedialog.askopenfilename(
@@ -195,6 +214,7 @@ class RenderEngine:
                 self.if_photo.image = convert_imagetk_with_resize(self.source_image, self.if_photo)
                 self.if_photo.config(image=self.if_photo.image)
                 self.sb_text.config(text='LOAD::SUCCESS {}'.format(filepath))
+                self.load_debug_info()
 
     def save_feature(self, feature_index, event=None):
         filepath =filedialog.asksaveasfilename(
@@ -261,8 +281,8 @@ class RenderEngine:
         self.debug_point = IntVar()
         # self.debug_result = IntVar()
 
-        Checkbutton(debug_control, text='Line', bg='white', variable=self.debug_line).pack(side=LEFT, padx=8, pady=8)
-        Checkbutton(debug_control, text='Point', bg='white', variable=self.debug_point).pack(side=LEFT, padx=8, pady=8)
+        Checkbutton(debug_control, text='Line', bg='white', variable=self.debug_line, command=self.load_debug_info).pack(side=LEFT, padx=8, pady=8)
+        Checkbutton(debug_control, text='Point', bg='white', variable=self.debug_point, command=self.load_debug_info).pack(side=LEFT, padx=8, pady=8)
         # Checkbutton(debug_control, text='Result', bg='white', variable=self.debug_result).pack(side=LEFT, padx=8, pady=8)
 
         # Load and save
