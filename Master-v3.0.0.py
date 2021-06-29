@@ -17,22 +17,21 @@ def extract_index_nparray(nparray):
 def extract_index_subdiv(subdiv, points):
     indexes = list()
     for t in np.array(subdiv.getTriangleList(), dtype=np.int32):
-        index_pt1 = extract_index_nparray(np.where((points == tuple(t[:2])).all(axis = 1)))
-        index_pt2 = extract_index_nparray(np.where((points == tuple(t[2:4])).all(axis = 1)))
-        index_pt3 = extract_index_nparray(np.where((points == tuple(t[4: ])).all(axis = 1)))
+        index_pt1 = extract_index_nparray(np.where((points == tuple(t[ :2])).all(axis=1)))
+        index_pt2 = extract_index_nparray(np.where((points == tuple(t[2:4])).all(axis=1)))
+        index_pt3 = extract_index_nparray(np.where((points == tuple(t[4: ])).all(axis=1)))
         if index_pt1 is not None and index_pt2 is not None and index_pt3 is not None:
-            indexes.append([index_pt1, index_pt2, index_pt3])
+            indexes.append(np.array([index_pt1, index_pt2, index_pt3]))
     return indexes
 
-class Helper:
-    def get_exportable(src): return ImageTk.PhotoImage(Image.fromarray(cv2.cvtColor(src, cv2.COLOR_BGR2RGB)))
-    def get_fix(src, cpn): return Helper.get_exportable(Helper.resize(src, cpn['width'], cpn['height']))
+def convert_imagetk(src): return ImageTk.PhotoImage(Image.fromarray(cv2.cvtColor(src, cv2.COLOR_BGR2RGB)))
+def convert_imagetk_with_resize(src, cpn):
+    width, height = cpn['width'], cpn['height']
+    img_width, img_height = src.shape[:2]
 
-    def resize(image, width, height):
-        img_width, img_height = image.shape[:2]
-        ratio = width / img_width
-        if img_height > img_width: ratio = height / img_height
-        return cv2.resize(image, None, fx=ratio, fy=ratio)
+    ratio = width / img_width
+    if img_height > img_width: ratio = height / img_height
+    return convert_imagetk(cv2.resize(src, None, fx=ratio, fy=ratio))
 
 
 
@@ -51,13 +50,11 @@ class dVMSEngine:
     def __init__ (self):
         self.source_image                 = None
         self.source_landmarks             = None
-        self.face_image_1                 = None
         self.indexes_triangles            = None
         self.indexes_triangles_convexhull = None
 
         self.detector  = dlib.get_frontal_face_detector()
         self.predictor = dlib.shape_predictor("68_landmarks.model")
-
 
     def set_source(self, image):
         self.source_image = image
@@ -195,7 +192,7 @@ class RenderEngine:
             else:
                 self.source_image = image
                 self.dvms_engine.set_source(image)
-                self.if_photo.image = Helper.get_fix(self.source_image, self.if_photo)
+                self.if_photo.image = convert_imagetk_with_resize(self.source_image, self.if_photo)
                 self.if_photo.config(image=self.if_photo.image)
                 self.sb_text.config(text='LOAD::SUCCESS {}'.format(filepath))
 
@@ -215,11 +212,11 @@ class RenderEngine:
 
         # INPUT_FRAME
         self.if_capture = Label(source_frame, width=self.SQR_WIDTH, height=self.SQR_HEIGHT)
-        self.if_capture.image = Helper.get_fix(im_noimage, self.if_capture)
+        self.if_capture.image = convert_imagetk_with_resize(im_noimage, self.if_capture)
         self.if_capture.config(image=self.if_capture.image)
         self.if_capture.bind('<Button-1>', self.select_capture)
         self.if_photo = Label(source_frame, width=self.SQR_WIDTH, height=self.SQR_HEIGHT)
-        self.if_photo.image = Helper.get_fix(im_noimage, self.if_photo)
+        self.if_photo.image = convert_imagetk_with_resize(im_noimage, self.if_photo)
         self.if_photo.config(image=self.if_photo.image)
         self.if_photo.bind('<Button-1>', self.select_source)
 
@@ -230,11 +227,11 @@ class RenderEngine:
 
         # OUTPUT_FRAME
         self.of_feature0 = Label(source_frame, width=self.SQR_WIDTH, height=self.SQR_HEIGHT)
-        self.of_feature0.image = Helper.get_fix(im_noimage, self.of_feature0)
+        self.of_feature0.image = convert_imagetk_with_resize(im_noimage, self.of_feature0)
         self.of_feature0.config(image=self.of_feature0.image)
 
         self.of_feature1 = Label(source_frame, width=self.SQR_WIDTH, height=self.SQR_HEIGHT)
-        self.of_feature1.image = Helper.get_fix(im_noimage, self.of_feature1)
+        self.of_feature1.image = convert_imagetk_with_resize(im_noimage, self.of_feature1)
         self.of_feature1.config(image=self.of_feature1.image)
 
         Label(source_frame, text=' -/dev/feature0 ', height=2).grid(row=2, column=0)
@@ -283,15 +280,15 @@ class RenderEngine:
 
     def capture_handle(self):
         capture_frame = self.capture_engine.read()
-        self.if_capture.image = Helper.get_fix(capture_frame, self.if_capture)
+        self.if_capture.image = convert_imagetk_with_resize(capture_frame, self.if_capture)
         self.if_capture.config(image=self.if_capture.image)
 
         self.image_feature = (capture_frame, capture_frame)
         try: self.image_feature = self.dvms_engine.swapping(capture_frame)
         except: pass
 
-        self.of_feature0.image = Helper.get_fix(self.image_feature[0], self.of_feature0)
-        self.of_feature1.image = Helper.get_fix(self.image_feature[1], self.of_feature1)
+        self.of_feature0.image = convert_imagetk_with_resize(self.image_feature[0], self.of_feature0)
+        self.of_feature1.image = convert_imagetk_with_resize(self.image_feature[1], self.of_feature1)
 
         self.of_feature0.config(image=self.of_feature0.image)
         self.of_feature1.config(image=self.of_feature1.image)
