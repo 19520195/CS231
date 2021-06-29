@@ -199,7 +199,7 @@ class RenderEngine:
     def save_feature(self, feature_index, event=None):
         filepath =filedialog.asksaveasfilename(
             initialdir=self.local_path, title="Save as",
-            filetypes=(("JPEG", "*.jpg"), ("GIF", "*.gif"), ("PNG", "*.png")))
+            defaultextension=".jpg", filetypes=(("JPEG", "*.jpg"), ("GIF", "*.gif"), ("PNG", "*.png")))
         if len(filepath): return cv2.imwrite(filepath, self.image_feature[feature_index])
 
     def load_components(self) -> None:
