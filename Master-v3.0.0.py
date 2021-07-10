@@ -151,12 +151,13 @@ class dVMSEngine:
 
 
 class RenderEngine:
-    WND_WIDTH, WND_HEIGHT = (1280, 720)
+    WND_WIDTH, WND_HEIGHT = (1280, 860)
     SQR_WIDTH, SQR_HEIGHT = (384 , 384)
 
     def __init__(self) -> None:
         self.app = Tk()
         self.app.title('FACE dVMS')
+        self.app.iconphoto(False, PhotoImage(file='Photos/FAVICON.PNG'))
         self.app.geometry('{}x{}'.format(self.WND_WIDTH, self.WND_HEIGHT))
         font.nametofont('TkDefaultFont').configure(family='Source Code Pro for Powerline', size=12)
         self.local_path = os.path.abspath(os.path.dirname(__file__))
